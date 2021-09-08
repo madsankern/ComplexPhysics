@@ -6,9 +6,9 @@
 import numpy as np
 import numba as nb
 
-##################
-## Initial stat ##
-##################
+###################
+## Initial state ##
+###################
 
 # Randomly draws either -1 or +1 on a NxN array. N is the row/column length of the lattice
 def initialstate(N):
@@ -26,33 +26,40 @@ def initialstate(N):
 # Updates are performed using the Metropolis-Hastings algorithm
 @nb.njit
 def mcmove(config, beta, J=1, h=0):
-    
-    '''Monte Carlo move using the Metropolis-Hastings algorithm '''
+    '''Monte Carlo move using the Metropolis-Hastings algorithm'''
 
     # Calculate the lattice size
-    N = np.shape(config)[0] # Assuming the lattice is square
+    N = config.shape[0] # Assuming the lattice is square
+    size = config.size
 
     # Perform N^2 iterations, corresponding to one Monte Carlo update
-    for _ in range(N*N):
+    for _ in range(size):
                 
             # Draw a random site, by drawing random row and column number
             i,j = np.random.randint(0,N), np.random.randint(0,N)
 
             # Define the lattice site chosen
-            s =  config[i, j]
+            # s =  config[i, j]
 
             # Compute energy of current configuration
-            E_stay = -J*s*(config[(i + 1)%N, j] + config[i, (j + 1)%N] + config[(i - 1)%N, j] + config[i, (j - 1)%N]) - h*s
+            E_stay = (
+                -J*config[i,j]*(
+                    config[(i + 1)%N, j] + 
+                    config[i, (j + 1)%N] + 
+                    config[(i - 1)%N, j] + 
+                    config[i, (j - 1)%N])
+                    - h*config[i,j]
+            )
 
             # Energy when flipping the spin is just minus the current energy
             E_flip = - E_stay
 
             # Determine whether to flip the spin or not using Metropolis-Hastings
             if np.random.rand() < np.exp(-beta*(E_flip - E_stay)) :
-                s *= -1
+                config[i,j] *= -1
 
             # Update lattice site
-            config[i,j] = s
+            # config[i,j] = s
                 
     return config
 
@@ -67,16 +74,20 @@ def calcEnergy(config, J=1, h=0):
     
     # Initialize
     energy = 0
+
+    # Compute size of the system
+    N = config.shape[0] # Assuming the lattice is square
+    size = config.size
     
     # Loop over all sites
     for i in range(len(config)):
         for j in range(len(config)):
             
             s = config[i,j]
-            nb = config[(i+1)%N, j] + config[i,(j+1)%N] + config[(i-1)%N, j] + config[i,(j-1)%N]
+            nb = config[(i+1)%N, j] + config[i, (j+1)%N] + config[(i-1)%N, j] + config[i,(j-1)%N]
             
             # Energy is from the Hamiltonian. Divide by 4 to avoid double counting (each site has 4 neighbours)
-            energy += (-J*nb*s / 4.0 - h*s) / (N*N)
+            energy += (-J*nb*s / 4.0 - h*s) / size
             
     return energy
 
@@ -85,6 +96,10 @@ def calcEnergy(config, J=1, h=0):
 def calcMag(config):
     '''Magnetization per site of a given configuration'''
     
+    # Compute number of lattice sites
+    size = config.size
+
     # Average magnetization is simply the sum of all spins in the lattice divided by # of elements
-    mag = np.sum(config)/(N*N)
+    mag = np.sum(config)/size
+
     return mag
