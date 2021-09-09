@@ -38,9 +38,6 @@ def mcmove(config, beta, J=1, h=0):
             # Draw a random site, by drawing random row and column number
             i,j = np.random.randint(0,N), np.random.randint(0,N)
 
-            # Define the lattice site chosen
-            # s =  config[i, j]
-
             # Compute energy of current configuration
             E_stay = (
                 -J*config[i,j]*(
@@ -57,9 +54,6 @@ def mcmove(config, beta, J=1, h=0):
             # Determine whether to flip the spin or not using Metropolis-Hastings
             if np.random.rand() < np.exp(-beta*(E_flip - E_stay)) :
                 config[i,j] *= -1
-
-            # Update lattice site
-            # config[i,j] = s
                 
     return config
 
